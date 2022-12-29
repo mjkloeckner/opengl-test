@@ -18,3 +18,7 @@ For now just draws a triangle but in a future I would like to implement a
 $ make -j $(nproc)
 $ ./opengl
 ```
+
+## License
+
+[MIT]()
