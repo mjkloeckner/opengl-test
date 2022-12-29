@@ -4,39 +4,59 @@
 
 #include <stdio.h>
 
-#define WINDOW_TITLE    "OpenGL Test Window"
-#define WINDOW_WIDTH    800
-#define WINDOW_HEIGHT   600
+#define WIN_TITLE    "OpenGL Test Window"
+#define WIN_WIDTH    800
+#define WIN_HEIGHT   600
+
+#define FRAGMENT_SHADER_FILE_NAME	"main.frag"
+#define VERTEX_SHADER_FILE_NAME		"main.vert"
 
 void glfwPrintError(int e, const char *s) {
     fprintf(stderr, "%s\n", s);
 }
 
+char *loadShaderFromFile(const char *filename) {
+	char *buffer;
+	long len;
+	FILE *f = fopen(filename, "rb");
+
+	if(f) {
+		fseek(f, 0, SEEK_END);
+		len = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		buffer = (char *)malloc(len + 1);
+		buffer[len] = '\0';
+
+		if(buffer)
+			fread (buffer, 1, len, f);
+
+		fclose (f);
+	} else return NULL;
+
+	return buffer;
+}
+
 int main (void) {
     GLenum err;
+	GLFWwindow *win;
+	unsigned int VBO, VAO; /* Vertex Buffer Objects, Vertex Array Objects */
+	const char *vertexShaderSource, *fragmentShaderSource;
+	unsigned int vertexShader, fragmentShader, shaderProgram;
+	int success;
+	char infoLog[512];
 
 	if(!glfwInit()) {
 		fprintf(stderr, "GLFW: failed to initialize\n");
 		return 1;
 	}
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-
-	GLFWwindow *win = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT,
-            WINDOW_TITLE, NULL, NULL);
-
-	if(!win) {
-		fprintf(stderr, "GLFW: failed to create window\n");
+	if(!(win = glfwCreateWindow(WIN_WIDTH, WIN_HEIGHT, WIN_TITLE, NULL, NULL)))
 		glfwTerminate();
-	}
 
 	glfwSetErrorCallback(&glfwPrintError);
-
 	glfwMakeContextCurrent(win);
 
-
-	if((err = glewInit()) != 0) {
+	if((err = glewInit())) {
         fprintf(stderr, "GLEW: %s\n", glewGetErrorString(err));
         return 2;
     }
@@ -48,10 +68,11 @@ int main (void) {
 		 0.0f,  0.5f, 0.0f,
 	};
 
-	unsigned int VBO;     /* Vertex Buffer Objects */
-	glGenBuffers(1, &VBO); /* Generate an unique ID to VBO */
-	glBindBuffer(GL_ARRAY_BUFFER, VBO); /* bind VBO to a Vertex Buffer type */
+	/* Generate an unique ID to VBO */
+	glGenBuffers(1, &VBO);
 
+	/* Bind VBO to a Vertex Buffer type */
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
 	/* Copy the previously defined Vertex Data (vertices) into the buffer's 
 	 * memory.
@@ -63,20 +84,17 @@ int main (void) {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	/* Vertex Shader */
-	const char *vertexShaderSource = "#version 410 core\n"
-		"layout (location = 0) in vec3 aPos;\n"
-		"void main() {\n"
-		"    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-		"}\0";
+	if(!(vertexShaderSource = loadShaderFromFile(VERTEX_SHADER_FILE_NAME))) {
+		fprintf(stderr, "could not load shader from file \"%s\n\"",
+				VERTEX_SHADER_FILE_NAME);
+		return 1;
+	}
 
-	unsigned int vertexShader;
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
 
 	/* Check if the Vertex Shader compiled succesfully */
-	int success;
-	char infoLog[512];
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
 	if(!success) {
 		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
@@ -85,13 +103,12 @@ int main (void) {
 	}
 
 	/* Fragment Shader */
-	const char *fragmentShaderSource = "#version 410 core\n"
-		"out vec4 fragColor;\n"
-		"void main() {\n"
-		"fragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);\n"
-		"}\n";
+	if(!(fragmentShaderSource = loadShaderFromFile(FRAGMENT_SHADER_FILE_NAME))) {
+		fprintf(stderr, "could not load shader from file \"%s\n\"",
+				FRAGMENT_SHADER_FILE_NAME);
+		return 1;
+	}
 
-	unsigned int fragmentShader;
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
 	glCompileShader(fragmentShader);
@@ -105,9 +122,7 @@ int main (void) {
 	}
 
 	/* Shader Program */
-	unsigned int shaderProgram;
 	shaderProgram = glCreateProgram();
-
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
 	glLinkProgram(shaderProgram);
@@ -124,8 +139,6 @@ int main (void) {
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 
-
-	unsigned int VAO;
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
@@ -145,5 +158,8 @@ int main (void) {
 		glfwPollEvents();
 	}
 
+	free(vertexShaderSource);
+	free(fragmentShaderSource);
+	glfwTerminate();
 	return 0;
 }
