@@ -15,6 +15,10 @@ void glfwPrintError(int e, const char *s) {
     fprintf(stderr, "%s\n", s);
 }
 
+void framebufferSizeCallback(GLFWwindow* win, int width, int height) {
+    glViewport(0, 0, width, height);
+}
+
 char *loadShaderFromFile(const char *filename) {
 	char *buffer;
 	long len;
@@ -27,7 +31,7 @@ char *loadShaderFromFile(const char *filename) {
 		buffer = (char *)malloc(len + 1);
 		buffer[len] = '\0';
 
-		if(buffer)
+		if(buffer) 
 			fread (buffer, 1, len, f);
 
 		fclose (f);
@@ -40,7 +44,7 @@ int main (void) {
     GLenum err;
 	GLFWwindow *win;
 	unsigned int VBO, VAO; /* Vertex Buffer Objects, Vertex Array Objects */
-	const char *vertexShaderSource, *fragmentShaderSource;
+	char *vertexShaderSource, *fragmentShaderSource;
 	unsigned int vertexShader, fragmentShader, shaderProgram;
 	int success;
 	char infoLog[512];
@@ -54,6 +58,7 @@ int main (void) {
 		glfwTerminate();
 
 	glfwSetErrorCallback(&glfwPrintError);
+	glfwSetFramebufferSizeCallback(win, framebufferSizeCallback);
 	glfwMakeContextCurrent(win);
 
 	if((err = glewInit())) {
@@ -63,9 +68,9 @@ int main (void) {
 
 	/*  Vertex Input (or Vertex Data)  */
 	float vertices[] = {
-		-0.5f, -0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		 0.0f,  0.5f, 0.0f,
+		-0.5f, -0.5f,
+		 0.5f, -0.5f,
+		 0.0f,  0.5f,
 	};
 
 	/* Generate an unique ID to VBO */
@@ -91,7 +96,7 @@ int main (void) {
 	}
 
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+	glShaderSource(vertexShader, 1, (char const* const*)&vertexShaderSource, NULL);
 	glCompileShader(vertexShader);
 
 	/* Check if the Vertex Shader compiled succesfully */
@@ -110,7 +115,7 @@ int main (void) {
 	}
 
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+	glShaderSource(fragmentShader, 1, (char const* const*)&fragmentShaderSource, NULL);
 	glCompileShader(fragmentShader);
 
 	/* Check if the Fragment Shader compiled succesfully */
@@ -143,12 +148,14 @@ int main (void) {
 	glBindVertexArray(VAO);
 
 	/* Linking Vertex attributes */
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-			3 * sizeof(float), (void *)0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
+			2 * sizeof(float), (void *)0);
+
 	glEnableVertexAttribArray(0);
 	glUseProgram(shaderProgram);
 	glBindVertexArray(VAO);
 
+	/* main loop */
 	while (!glfwWindowShouldClose(win)) {
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -160,6 +167,12 @@ int main (void) {
 
 	free(vertexShaderSource);
 	free(fragmentShaderSource);
+
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+	glDeleteProgram(shaderProgram);
+
+	glfwDestroyWindow(win);
 	glfwTerminate();
 	return 0;
 }
