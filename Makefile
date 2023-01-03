@@ -1,6 +1,6 @@
 CC := gcc
 CLIBS := `sdl2-config --libs` $(shell pkg-config --libs glfw3 glew)
-CFLAGS := `sdl2-config --cflags` -Wall -Wshadow -pedantic -ansi -std=c99 -O3
+CFLAGS := `sdl2-config --cflags` -Wall -Wshadow -pedantic -ansi -std=c99 -O3 -lm
 SRCS := $(wildcard *.c)
 OBJS := $(SRCS:.c=.o)
 
